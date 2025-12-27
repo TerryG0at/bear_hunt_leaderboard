@@ -45,14 +45,9 @@ class BearHuntLeaderboard:
 
 # --- HELPER: SHOW TABLE WITHOUT SCROLLBAR ---
 def show_auto_height_table(dataframe):
-    # 35px is normal row height. We use 45px to be safe against text-wrapping.
-    # +38px is the buffer for the header row.
-    safe_height = (len(dataframe) * 45) + 38
-    
     st.dataframe(
         dataframe, 
-        use_container_width=True, 
-        height=safe_height 
+        use_container_width=True
     )
 
 # --- APP INTERFACE ---
