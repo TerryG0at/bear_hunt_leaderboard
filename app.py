@@ -45,10 +45,7 @@ class BearHuntLeaderboard:
 
 # --- HELPER: SHOW TABLE WITHOUT SCROLLBAR ---
 def show_auto_height_table(dataframe):
-    st.dataframe(
-        dataframe, 
-        use_container_width=True
-    )
+    st.table(dataframe)
 
 # --- APP INTERFACE ---
 st.title("🐻 King Shot Bear Hunt Leaderboard")
