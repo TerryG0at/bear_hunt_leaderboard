@@ -43,16 +43,6 @@ class BearHuntLeaderboard:
             })
         return pd.DataFrame()
 
-# --- HELPER FUNCTION TO SHOW FULL TABLE ---
-def show_full_table(dataframe):
-    # Calculate height: (Rows + 1 for header) * 35 pixels per row + buffer
-    height_calculation = (len(dataframe) + 1) * 35 + 3
-    st.dataframe(
-        dataframe, 
-        use_container_width=True, 
-        height=height_calculation
-    )
-
 # --- APP INTERFACE ---
 st.title("🐻 King Shot Bear Hunt Leaderboard")
 st.write("Rankings are based on the highest damage dealt in a rally.")
@@ -154,12 +144,13 @@ df = lb.get_full_dataframe()
 
 if not df.empty:
     st.subheader("🥇 Tier 1: Inner 12")
-    show_full_table(df.iloc[0:12])
+    # Using st.table forces the full list to display without scrolling
+    st.table(df.iloc[0:12])
 
     st.subheader("🥈 Tier 2: Middle Ring (Next 20)")
-    show_full_table(df.iloc[12:32])
+    st.table(df.iloc[12:32])
 
     st.subheader("🥉 Tier 3: Outer Ring")
-    show_full_table(df.iloc[32:])
+    st.table(df.iloc[32:])
 else:
     st.write("No data found.")
