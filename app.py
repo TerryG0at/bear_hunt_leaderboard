@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="Bear Hunt Leaderboard", page_icon="🐻")
+st.set_page_config(page_title="Bear Hunt Leaderboard", page_icon="🐻", layout="wide")
 
 # --- THE LOGIC CLASS ---
 class BearHuntLeaderboard:
@@ -11,9 +11,7 @@ class BearHuntLeaderboard:
         self.data = []
 
     def add_entry(self, creator, damage_val, partner_name):
-        # Remove old entry if creator exists (to allow updates)
         self.data = [row for row in self.data if row['Creator'] != creator]
-        
         self.data.append({
             'Creator': creator,
             'Damage_Value': float(damage_val),
@@ -21,7 +19,6 @@ class BearHuntLeaderboard:
         })
 
     def load_initial_data(self, raw_text_list):
-        # Regex to capture: "Name (123.4m with Partner)"
         pattern = re.compile(r"^\d+\.\s+(.+?)\s+\(([\d\.]+)[a-zA-Z]*\s+with\s+(.+?)\)")
         for line in raw_text_list:
             line = line.strip()
@@ -30,26 +27,31 @@ class BearHuntLeaderboard:
             match = pattern.match(line)
             if match:
                 self.add_entry(match.group(1), match.group(2), match.group(3))
-            elif "Bluey" in line: # Special fallback for Bluey
+            elif "Bluey" in line:
                 self.add_entry("Bluey", 279.7, "Ultimate Bluey")
 
     def get_full_dataframe(self):
         df = pd.DataFrame(self.data)
         if not df.empty:
-            # Sort by damage descending
             df = df.sort_values(by='Damage_Value', ascending=False)
-            
-            # Create proper Ranking column (1 to N)
             df.reset_index(drop=True, inplace=True)
             df.index += 1 
             df.index.name = 'Rank'
-            
-            # Rename columns for display
             return df[['Creator', 'Display_Text']].rename(columns={
                 'Creator': 'Rally Creator', 
                 'Display_Text': 'Highest Damage (with Person)'
             })
         return pd.DataFrame()
+
+# --- HELPER FUNCTION TO SHOW FULL TABLE ---
+def show_full_table(dataframe):
+    # Calculate height: (Rows + 1 for header) * 35 pixels per row + buffer
+    height_calculation = (len(dataframe) + 1) * 35 + 3
+    st.dataframe(
+        dataframe, 
+        use_container_width=True, 
+        height=height_calculation
+    )
 
 # --- APP INTERFACE ---
 st.title("🐻 King Shot Bear Hunt Leaderboard")
@@ -147,23 +149,17 @@ lb.load_initial_data(raw_data)
 df = lb.get_full_dataframe()
 
 # ---------------------------------------------------------
-# DISPLAY TABLES (TIER LOGIC)
+# DISPLAY TABLES
 # ---------------------------------------------------------
 
 if not df.empty:
-    # --- TIER 1: Top 12 ---
     st.subheader("🥇 Tier 1: Inner 12")
-    # Slice rows 0 to 12
-    st.dataframe(df.iloc[0:12], use_container_width=True)
+    show_full_table(df.iloc[0:12])
 
-    # --- TIER 2: Next 20 (Rank 13 to 32) ---
     st.subheader("🥈 Tier 2: Middle Ring (Next 20)")
-    # Slice rows 12 to 32 (12+20)
-    st.dataframe(df.iloc[12:32], use_container_width=True)
+    show_full_table(df.iloc[12:32])
 
-    # --- TIER 3: The Rest ---
     st.subheader("🥉 Tier 3: Outer Ring")
-    # Slice rows 32 to the end
-    st.dataframe(df.iloc[32:], use_container_width=True)
+    show_full_table(df.iloc[32:])
 else:
     st.write("No data found.")
