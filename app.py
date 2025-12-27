@@ -11,11 +11,13 @@ class BearHuntLeaderboard:
         self.data = []
 
     def add_entry(self, creator, damage_val, partner_name):
+        # Remove old entry if creator exists (to allow updates)
         self.data = [row for row in self.data if row['Creator'] != creator]
+        
         self.data.append({
             'Creator': creator,
-            'Damage_Value': float(damage_val),
-            'Display_Text': f"{damage_val}m with {partner_name}"
+            'Damage': float(damage_val),
+            'Partner': partner_name
         })
 
     def load_initial_data(self, raw_text_list):
@@ -30,30 +32,40 @@ class BearHuntLeaderboard:
             elif "Bluey" in line:
                 self.add_entry("Bluey", 279.7, "Ultimate Bluey")
 
-    def get_full_dataframe(self):
+    def get_dataframe(self):
         df = pd.DataFrame(self.data)
         if not df.empty:
-            df = df.sort_values(by='Damage_Value', ascending=False)
-            df.reset_index(drop=True, inplace=True)
-            df.index += 1 
-            df.index.name = 'Rank'
-            return df[['Creator', 'Display_Text']].rename(columns={
-                'Creator': 'Rally Creator', 
-                'Display_Text': 'Highest Damage (with Person)'
-            })
-        return pd.DataFrame()
+            # Sort by damage descending
+            df = df.sort_values(by='Damage', ascending=False)
+            return df
+        return pd.DataFrame(columns=['Creator', 'Damage', 'Partner'])
 
-# --- HELPER: SHOW TABLE WITHOUT SCROLLBAR ---
-def show_auto_height_table(dataframe):
-    st.table(dataframe)
+# --- HELPER: FORMATTING FOR DISPLAY ---
+def show_leaderboard_table(dataframe):
+    # Create a copy for display so we don't mess up the raw data
+    display_df = dataframe.copy()
+    
+    # Add Rank
+    display_df.reset_index(drop=True, inplace=True)
+    display_df.index += 1 
+    display_df.index.name = 'Rank'
+    
+    # Combine Damage and Partner into one text column
+    display_df['Score Details'] = display_df.apply(
+        lambda x: f"{x['Damage']}m with {x['Partner']}", axis=1
+    )
+    
+    # Show only relevant columns
+    st.table(display_df[['Creator', 'Score Details']])
 
 # --- APP INTERFACE ---
 st.title("🐻 King Shot Bear Hunt Leaderboard")
 
+# Initialize Logic
 lb = BearHuntLeaderboard()
 
 # ---------------------------------------------------------
-# DATA INPUT
+# DATA INPUT (PASTE THIS BLOCK INTO VS CODE TO UPDATE)
 # ---------------------------------------------------------
 raw_data = [
     "1. Bluey (279.7m with Ultimate Bluey)",
@@ -138,19 +150,49 @@ raw_data = [
 ]
 
 lb.load_initial_data(raw_data)
-df = lb.get_full_dataframe()
+df = lb.get_dataframe()
 
 # ---------------------------------------------------------
-# DISPLAY
+# ADMIN: EDIT & GENERATE CODE
+# ---------------------------------------------------------
+with st.expander("🛠️ Admin: Update Scores (Click to Expand)"):
+    st.info("💡 **How to use:** Edit the table below. When done, copy the code block at the bottom and paste it into your VS Code `raw_data` section.")
+    
+    # 1. Allow editing the dataframe
+    # num_rows="dynamic" allows you to add new people by clicking the "+" at the bottom
+    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+
+    # 2. Sort the edited data immediately
+    edited_df = edited_df.sort_values(by='Damage', ascending=False)
+    edited_df = edited_df.reset_index(drop=True)
+
+    # 3. Generate the Python List String
+    code_output = "raw_data = [\n"
+    for index, row in edited_df.iterrows():
+        rank = index + 1
+        # Format: "1. Name (123.4m with Partner)"
+        line = f'    "{rank}. {row["Creator"]} ({row["Damage"]}m with {row["Partner"]})"'
+        if index < len(edited_df) - 1:
+            code_output += line + ",\n"
+        else:
+            code_output += line + "\n"
+    code_output += "]"
+
+    # 4. Show the code to copy
+    st.text("👇 Copy this new list and paste it into app.py:")
+    st.code(code_output, language="python")
+
+# ---------------------------------------------------------
+# PUBLIC LEADERBOARD DISPLAY
 # ---------------------------------------------------------
 if not df.empty:
     st.subheader("🥇 Tier 1: Inner 12")
-    show_auto_height_table(df.iloc[0:12])
+    show_leaderboard_table(df.iloc[0:12])
 
     st.subheader("🥈 Tier 2: Middle Ring (Next 20)")
-    show_auto_height_table(df.iloc[12:32])
+    show_leaderboard_table(df.iloc[12:32])
 
     st.subheader("🥉 Tier 3: Outer Ring")
-    show_auto_height_table(df.iloc[32:])
+    show_leaderboard_table(df.iloc[32:])
 else:
     st.write("No data found.")
