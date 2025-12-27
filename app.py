@@ -43,11 +43,21 @@ class BearHuntLeaderboard:
             })
         return pd.DataFrame()
 
+# --- HELPER: SHOW TABLE WITHOUT SCROLLBAR ---
+def show_auto_height_table(dataframe):
+    # 35px is normal row height. We use 45px to be safe against text-wrapping.
+    # +38px is the buffer for the header row.
+    safe_height = (len(dataframe) * 45) + 38
+    
+    st.dataframe(
+        dataframe, 
+        use_container_width=True, 
+        height=safe_height 
+    )
+
 # --- APP INTERFACE ---
 st.title("🐻 King Shot Bear Hunt Leaderboard")
-st.write("Rankings are based on the highest damage dealt in a rally.")
 
-# Initialize Logic
 lb = BearHuntLeaderboard()
 
 # ---------------------------------------------------------
@@ -139,18 +149,16 @@ lb.load_initial_data(raw_data)
 df = lb.get_full_dataframe()
 
 # ---------------------------------------------------------
-# DISPLAY TABLES
+# DISPLAY
 # ---------------------------------------------------------
-
 if not df.empty:
     st.subheader("🥇 Tier 1: Inner 12")
-    # Using st.table forces the full list to display without scrolling
-    st.table(df.iloc[0:12])
+    show_auto_height_table(df.iloc[0:12])
 
     st.subheader("🥈 Tier 2: Middle Ring (Next 20)")
-    st.table(df.iloc[12:32])
+    show_auto_height_table(df.iloc[12:32])
 
     st.subheader("🥉 Tier 3: Outer Ring")
-    st.table(df.iloc[32:])
+    show_auto_height_table(df.iloc[32:])
 else:
     st.write("No data found.")
